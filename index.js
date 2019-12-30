@@ -48,7 +48,7 @@ const IV_LENGTH = 16; // For AES, this is always 16, checked with php
 // const password = 'FU+WC2m1jhAdorG5bgNniF7/zLmvt8NRXSGK6QJ0KgM=';
 const password = 'lbwyBzfgzUIvXZFShJuikaWvLJhIVq36'; // Must be 256 bytes (32 characters)
 let encrypted = encrypt({ phone: '9896747812',
-  countryCode: '+966',
+  countryCode: '+91',
   password: '123456',
   deviceType: 'web',
   deviceToken: '232323232323' },password);

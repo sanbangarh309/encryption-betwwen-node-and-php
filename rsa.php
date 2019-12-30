@@ -2,7 +2,7 @@
 ini_set('display_errors', 1);
 define('AES_METHOD', 'aes-256-cbc');
 $data = new \stdClass();
-$data->phone='9896747812';$data->countryCode='+966';$data->password='123456';$data->deviceType='web';
+$data->phone='9896747812';$data->countryCode='+91';$data->password='123456';$data->deviceType='web';
 $data->deviceToken='232323232323';
 $password = 'lbwyBzfgzUIvXZFShJuikaWvLJhIVq36';
 $encrypted = encrypt($data, $password);
