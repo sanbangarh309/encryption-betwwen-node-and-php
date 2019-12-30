@@ -2,12 +2,16 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
+const fs = require('fs');
+const path = require('path');
 const rsaWrapper = require('./components/rsa-wrapper');
 const aesWrapper = require('./components/aes-wrapper');
 
 rsaWrapper.initLoadServerKeys(__dirname);
 rsaWrapper.serverExampleEncrypt();
-
+const serverPrivate = fs.readFileSync(path.resolve(__dirname + '/keys', 'server.private.pem'));
+const clientPrivate = fs.readFileSync(path.resolve(__dirname + '/keys', 'client.private.pem'));
+const clientPub = fs.readFileSync(path.resolve(__dirname + '/keys', 'client.public.pem'));
 // middleware for static processing
 app.use(express.static(__dirname + '/static'));
 
@@ -46,17 +50,27 @@ const AES_METHOD = 'aes-256-cbc';
 const IV_LENGTH = 16; // For AES, this is always 16, checked with php
 // sBNkHo/lJPdfq3oXDP9tGA==
 // const password = 'FU+WC2m1jhAdorG5bgNniF7/zLmvt8NRXSGK6QJ0KgM=';
-const password = 'lbwyBzfgzUIvXZFShJuikaWvLJhIVq36'; // Must be 256 bytes (32 characters)
+let password = crypto.randomBytes(32);
+// console.log(pwd," == pwd ------------------------tostring == ", pwd.toString('base64'));
+// const password = 'lbwyBzfgzUIvXZFShJuikaWvLJhIVq36'; // Must be 256 bytes (32 characters)
 let encrypted = encrypt({ phone: '9896747812',
+  phone2: '6239485491',
   countryCode: '+91',
   password: '123456',
   deviceType: 'web',
   deviceToken: '232323232323' },password);
-console.log('encrypted.......', encrypted);
+
+
+let finalData = {};
+let encryptedKey = rsaEncrypt(clientPub, password.toString('base64'));
+finalData['encryptionData'] = encrypted;
+finalData['encryptionKey'] = encryptedKey;
+console.log('finalData.......', finalData);
 console.log('...........');
-let decrypted = decrypt(encrypted);
+let decryptionKey = password = rsaDecrypt(clientPrivate, encryptedKey);
+console.log('decryptionKey...........', decryptionKey);
+let decrypted = decrypt(encrypted, password);
 console.log('decrypted.......', decrypted);
-console.log('...........');
 function encrypt(text, password) {
     if (process.versions.openssl <= '1.0.1f') {
         throw new Error('OpenSSL Version too old, vulnerability to Heartbleed')
@@ -64,7 +78,8 @@ function encrypt(text, password) {
     
     let iv = crypto.randomBytes(IV_LENGTH);
     // let iv = Buffer.from('sBNkHo/lJPdfq3oXDP9tGA==');
-    console.log('base64 encode...',iv.toString('base64'),'....',crypto.randomBytes(IV_LENGTH));
+    // console.log('base64 encode...',iv.toString('base64'),'....',crypto.randomBytes(IV_LENGTH));
+    console.log('iv...................',iv);
     let cipher = crypto.createCipheriv(AES_METHOD, new Buffer(password), iv);
     let encrypted = cipher.update(Buffer.from(JSON.stringify(text)), 'utf8');
     encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -73,19 +88,37 @@ function encrypt(text, password) {
     // encrypted += cipher.update(Buffer.from(text), 'utf8', 'base64');
     // encrypted += cipher.final('base64');
     // console.log('iv.toString()', iv.toString('hex'));
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
+    return encrypted.toString('hex') + ':' + iv.toString('hex');
 }
 
-function decrypt(text) {
+function decrypt(text, password) {
+    console.log('password..',password,'...buffer',Buffer.from(password, 'base64'));
     let textParts = text.split(':');
-    let iv = new Buffer(textParts.shift(), 'hex');
+    let iv = new Buffer(textParts.pop(), 'hex');
     let encryptedText = new Buffer(textParts.join(':'), 'hex');
-    let decipher = crypto.createDecipheriv('aes-256-cbc', new Buffer(password), iv);
+    let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(password, 'base64'), iv);
     let decrypted = decipher.update(encryptedText);
 
     decrypted = Buffer.concat([decrypted, decipher.final()]);
 
     return JSON.parse(decrypted.toString());
+}
+
+function rsaEncrypt(publicKey, message){
+    let enc = crypto.publicEncrypt({
+        key: publicKey,
+        padding: crypto.RSA_PKCS1_OAEP_PADDING
+    }, Buffer.from(message));
+    return enc.toString('base64');
+}
+
+function rsaDecrypt(privateKey, message){
+    let enc = crypto.privateDecrypt({
+        key: privateKey,
+        padding: crypto.RSA_PKCS1_OAEP_PADDING
+    }, Buffer.from(message, 'base64'));
+
+    return enc.toString();
 }
 
 http.listen(3000, function(){
