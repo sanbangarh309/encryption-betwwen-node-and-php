@@ -9,7 +9,7 @@
     "io": "^0.1.10",
     "node-rsa": "^0.4.2",
     "path": "^0.12.7",
-    "socket.io": "^1.7.2"
+    "socket.io": "^4.5.3"
   },
   "scripts": {
     "generate": "node init",
