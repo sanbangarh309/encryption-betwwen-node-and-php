@@ -4,7 +4,7 @@
   "description": "encryption application",
   "dependencies": {
     "crypto": "^1.0.1",
-    "express": "^4.14.1",
+    "express": "^4.17.3",
     "fs": "0.0.1-security",
     "io": "^0.1.10",
     "node-rsa": "^0.4.2",
